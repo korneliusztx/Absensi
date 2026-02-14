@@ -30,104 +30,114 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
     _refreshData();
   }
 
-  void _refreshData() {
+  // Update: Mengembalikan Future agar indikator loading refresh berjalan
+  Future<void> _refreshData() async {
     setState(() {
       _profileFuture = _apiService.getProfile(widget.token);
       _attendanceFuture = _apiService.getHistory(widget.token);
       _leaveFuture = _apiService.getLeaveHistory(widget.token);
     });
+    // Tunggu semua proses selesai
+    await Future.wait([_profileFuture, _attendanceFuture, _leaveFuture]);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      // AppBar khusus Mobile Sales/Lapngan
-      appBar: AppBar(
-        title: const Text("Mobile Sales", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
-        actions: [
-          IconButton(onPressed: _refreshData, icon: const Icon(Icons.refresh))
-        ],
-      ),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. Header & Stats (SAMA PERSIS)
-            _buildMinimalHeader(),
-            const SizedBox(height: 20),
-            _buildStatsSection(),
-            const SizedBox(height: 25),
+        child: RefreshIndicator(
+          onRefresh: _refreshData,
+          color: Colors.blueAccent,
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) => [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildMinimalHeader(),
+                    const SizedBox(height: 20),
+                    _buildStatsSection(),
+                    const SizedBox(height: 25),
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _bigActionButton(
-                        "Kirim Kunjungan\n(Foto & Lokasi)",
-                        Icons.camera_alt,
-                        Colors.blueAccent,
-                            () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendanceScreen(token: widget.token)))
+                    // TOMBOL MENU BESAR
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _bigActionButton(
+                                "Kirim Kunjungan\n(Foto & Lokasi)",
+                                Icons.camera_alt,
+                                Colors.blueAccent,
+                                // PENTING: Set isMobile: true agar tidak perlu validasi jarak
+                                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendanceScreen(token: widget.token, isMobile: true)))
+                            ),
+                          ),
+                          const SizedBox(width: 15),
+                          Expanded(
+                            child: _bigActionButton(
+                                "Pengajuan\nCuti",
+                                Icons.calendar_month,
+                                Colors.orange,
+                                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => LeaveScreen(token: widget.token)))
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 15),
-                  // TOMBOL 2: CUTI
-                  Expanded(
-                    child: _bigActionButton(
-                        "Pengajuan\nCuti",
-                        Icons.calendar_month,
-                        Colors.orange,
-                            () => Navigator.push(context, MaterialPageRoute(builder: (_) => LeaveScreen(token: widget.token)))
+                    const SizedBox(height: 25),
+
+                    // TAB BAR
+                    Container(
+                      height: 40,
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
+                      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(20)),
+                      child: TabBar(
+                        controller: _tabController,
+                        indicator: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        labelColor: Colors.white,
+                        unselectedLabelColor: Colors.grey[600],
+                        dividerColor: Colors.transparent,
+                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        tabs: const [Tab(text: "Riwayat Absen"), Tab(text: "Riwayat Cuti")],
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 15),
+                  ],
+                ),
               ),
+            ],
+            // ISI KONTEN (LIST)
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                // Bungkus masing-masing list dengan RefreshIndicator lagi agar UX lebih smooth
+                RefreshIndicator(
+                  onRefresh: _refreshData,
+                  child: _buildModernAttendanceList(),
+                ),
+                RefreshIndicator(
+                  onRefresh: _refreshData,
+                  child: _buildModernLeaveList(),
+                ),
+              ],
             ),
-
-            const SizedBox(height: 25),
-
-            // 3. TAB BAR & LIST (SAMA PERSIS)
-            Container(
-              height: 40,
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(20)),
-              child: TabBar(
-                controller: _tabController,
-                indicator: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
-                indicatorSize: TabBarIndicatorSize.tab,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.grey[600],
-                dividerColor: Colors.transparent,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                tabs: const [Tab(text: "Riwayat Absen"), Tab(text: "Riwayat Cuti")],
-              ),
-            ),
-            const SizedBox(height: 15),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildModernAttendanceList(),
-                  _buildModernLeaveList(),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+
+  // --- WIDGET HELPER (TIDAK PERLU DIUBAH, CUMA COPY PASTE DARI KODE ANDA) ---
 
   Widget _bigActionButton(String title, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         constraints: const BoxConstraints(minHeight: 140),
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10), // Tambah padding vertikal
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(20),
@@ -141,14 +151,14 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
               decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
               child: Icon(icon, color: color, size: 32),
             ),
-            const SizedBox(height: 15), // Jarak sedikit diperlebar
+            const SizedBox(height: 15),
             Text(
               title,
               textAlign: TextAlign.center,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                  fontSize: 13, // Sedikit diperkecil agar muat
+                  fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: color.withOpacity(0.9)
               ),
@@ -158,7 +168,6 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
       ),
     );
   }
-
 
   Widget _buildMinimalHeader() {
     return Padding(
@@ -170,7 +179,7 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("Halo, ${widget.name.split(' ')[0]}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-              const Text("Mode Mobile / Lapangan", style: TextStyle(fontSize: 12, color: Colors.grey)), // Penanda Mode
+              const Text("Mode Mobile / Lapangan", style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
           const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.location_on, color: Colors.white)),
@@ -224,13 +233,17 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
     );
   }
 
+  // UPDATE: Tambahkan Physics agar bisa di-scroll & refresh meski data kosong/sedikit
   Widget _buildModernAttendanceList() {
     return FutureBuilder<List<dynamic>>(
       future: _attendanceFuture,
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text("Belum ada data"));
+        // Tetap return ListView agar bisa di-refresh saat kosong
+        if (!snapshot.hasData || snapshot.data!.isEmpty) return _emptyIllustration();
+
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          physics: const AlwaysScrollableScrollPhysics(), // WAJIB
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           itemCount: snapshot.data!.length,
           itemBuilder: (context, index) {
             var item = snapshot.data![index];
@@ -274,16 +287,43 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
     return FutureBuilder<List<dynamic>>(
       future: _leaveFuture,
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text("Belum ada data"));
+        if (!snapshot.hasData || snapshot.data!.isEmpty) return _emptyIllustration();
+
         return ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          physics: const AlwaysScrollableScrollPhysics(), // WAJIB
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           itemCount: snapshot.data!.length,
           itemBuilder: (context, index) {
             var item = snapshot.data![index];
-            return ListTile(title: Text(item['type'] ?? "Cuti"), subtitle: Text(item['status'] ?? "Pending"));
+            return Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: BorderSide(color: Colors.grey.shade200)),
+              margin: const EdgeInsets.only(bottom: 10),
+              child: ListTile(title: Text(item['type'] ?? "Cuti"), subtitle: Text(item['status'] ?? "Pending")),
+            );
           },
         );
       },
+    );
+  }
+
+  // Widget kosong yang bisa di-refresh
+  Widget _emptyIllustration() {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        SizedBox(height: MediaQuery.of(context).size.height * 0.1),
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.inbox_outlined, size: 40, color: Colors.grey[300]),
+              const SizedBox(height: 10),
+              Text("Tidak ada data", style: TextStyle(color: Colors.grey[400])),
+            ],
+          ),
+        )
+      ],
     );
   }
 }

@@ -68,9 +68,10 @@ class ApiService {
     }
   }
 
-  Future<bool> postAttendance(String token, double lat, double long, File photo) async {
+  // Ubah return type jadi Map agar bisa bawa pesan
+  Future<Map<String, dynamic>> postAttendance(String token, double lat, double long, File photo) async {
     try {
-      var uri = Uri.parse("$baseUrl/attendance");
+      var uri = Uri.parse("$baseUrl/attendance"); // Pastikan endpoint benar (attendance/attendances)
       var request = http.MultipartRequest('POST', uri);
 
       request.headers['Authorization'] = 'Bearer $token';
@@ -79,13 +80,9 @@ class ApiService {
       request.fields['latitude'] = lat.toString();
       request.fields['longitude'] = long.toString();
 
-      if (await photo.exists()) {
-        var pic = await http.MultipartFile.fromPath("photo", photo.path);
-        request.files.add(pic);
-      } else {
-        print("File foto tidak ditemukan");
-        return false;
-      }
+      // Langsung kirim path (lebih stabil daripada cek exists dulu di beberapa android)
+      var pic = await http.MultipartFile.fromPath("photo", photo.path);
+      request.files.add(pic);
 
       print("Mengirim Absen: Lat: $lat, Long: $long");
 
@@ -95,15 +92,26 @@ class ApiService {
       print("Status Absen: ${response.statusCode}");
       print("Body Absen: ${response.body}");
 
+      // Ambil body response
+      var json = jsonDecode(response.body);
+
       if (response.statusCode == 200 || response.statusCode == 201) {
-        var json = jsonDecode(response.body);
-        return json['success'] == true;
+        return {
+          "success": true,
+          "message": json['message'] ?? "Absen Berhasil" // Ambil pesan dari API
+        };
       } else {
-        return false;
+        return {
+          "success": false,
+          "message": json['message'] ?? "Gagal Absen (Error ${response.statusCode})"
+        };
       }
     } catch (e) {
       print("Error Absen: $e");
-      return false;
+      return {
+        "success": false,
+        "message": "Terjadi kesalahan koneksi: $e"
+      };
     }
   }
   Future<List<dynamic>> getHistory(String token) async {
@@ -143,6 +151,33 @@ class ApiService {
     } catch (e) {
       print("Error Profile: $e");
       return null;
+    }
+  }
+  // Tambahkan ini di dalam class ApiService
+  Future<bool> updateProfile(String token, String field, String value) async {
+    try {
+      var uri = Uri.parse("$baseUrl/profile"); // Sesuaikan endpoint API Anda
+      var request = http.MultipartRequest('POST', uri);
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      // Kirim field yang diedit (misal: 'email' atau 'phone')
+      request.fields[field] = value;
+
+      // Jika backend butuh method PUT/PATCH, sesuaikan.
+      // Biasanya POST untuk update profil juga bisa tergantung backend.
+
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print("Error Update: $e");
+      return false;
     }
   }
   Future<List<dynamic>> getLeaveHistory(String token) async {
