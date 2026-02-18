@@ -5,11 +5,13 @@ import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 
 class PdfService {
-  Future<void> createPdf(
+
+  // --- PDF 1: FORMULIR CUTI (Sesuai Gambar 1 & 3) ---
+  Future<void> createCutiPdf(
       String name,
       String nik,
       String divisi,
-      String leaveType, // Jenis Cuti yang dipilih
+      String leaveType,
       DateTime startDate,
       DateTime endDate,
       String reason,
@@ -19,11 +21,7 @@ class PdfService {
       ) async {
 
     final pdf = pw.Document();
-
-    // Hitung jumlah hari
     int totalDays = endDate.difference(startDate).inDays + 1;
-
-    // Font bawaan PDF kadang tidak support bold standar, kita pakai default
 
     pdf.addPage(
       pw.Page(
@@ -33,15 +31,15 @@ class PdfService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // --- HEADER ---
+              // HEADER PTM
               pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text(""), // Placeholder Logo Kiri (Kosong)
+                    pw.Text(""),
                     pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.end,
                         children: [
-                          // Ganti Text ini dengan pw.Image jika punya logo file
+                          // Ganti dengan Logo Image jika ada
                           pw.Text("PT. PRIMA TUNGGAL MANDIRI", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
                         ]
                     )
@@ -53,7 +51,7 @@ class PdfService {
               ),
               pw.SizedBox(height: 20),
 
-              // --- DATA KARYAWAN (Baris 1 & 2) ---
+              // BODY CUTI
               _buildRowInfo("Nama", ": $name", "Divisi / Departement", ": $divisi"),
               pw.SizedBox(height: 5),
               _buildRowInfo("NIK / Barcode", ": $nik", "Hari / Tanggal", ": ${DateFormat('dd-MM-yyyy').format(DateTime.now())}"),
@@ -62,11 +60,9 @@ class PdfService {
               pw.Divider(thickness: 1),
               pw.SizedBox(height: 10),
 
-              // --- JENIS CUTI & TANGGAL ---
               pw.Row(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    // Kolom Kiri: Checkbox Jenis Cuti
                     pw.Expanded(
                         flex: 1,
                         child: pw.Column(
@@ -75,12 +71,11 @@ class PdfService {
                               pw.Text("Jenis Cuti :"),
                               pw.SizedBox(height: 5),
                               _buildCheckbox("Cuti Tahunan", leaveType == "Cuti Tahunan"),
-                              _buildCheckbox("Cuti Hamil / Melahirkan", leaveType.contains("Hamil")),
+                              _buildCheckbox("Cuti Hamil / Melahirkan", leaveType.contains("Hamil") || leaveType.contains("Melahirkan")),
                               _buildCheckbox("Cuti / Izin Khusus", leaveType.contains("Khusus")),
                             ]
                         )
                     ),
-                    // Kolom Kanan: Diisi Oleh Pemohon
                     pw.Expanded(
                         flex: 1,
                         child: pw.Column(
@@ -102,10 +97,8 @@ class PdfService {
               pw.Container(
                   width: double.infinity,
                   height: 30,
-                  decoration: const pw.BoxDecoration(
-                      border: pw.Border(bottom: pw.BorderSide(width: 1))
-                  ),
-                  child: pw.Text(reason, style: const pw.TextStyle(fontSize: 10)) // Alasan dimasukkan sini
+                  decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(width: 1))),
+                  child: pw.Text(reason, style: const pw.TextStyle(fontSize: 10))
               ),
 
               pw.SizedBox(height: 15),
@@ -135,12 +128,11 @@ class PdfService {
 
               pw.SizedBox(height: 20),
 
-              // --- TABEL PERHITUNGAN (Kotak Besar di Bawah) ---
+              // FOOTER CUTI (Tabel)
               pw.Container(
                   decoration: pw.BoxDecoration(border: pw.Border.all()),
                   child: pw.Row(
                       children: [
-                        // Kolom Kiri: Perhitungan Cuti
                         pw.Expanded(
                             child: pw.Padding(
                                 padding: const pw.EdgeInsets.all(5),
@@ -159,8 +151,7 @@ class PdfService {
                                 )
                             )
                         ),
-                        pw.Container(width: 1, height: 100, color: PdfColors.black), // Garis Tengah Vertikal
-                        // Kolom Kanan: Cuti Khusus
+                        pw.Container(width: 1, height: 100, color: PdfColors.black),
                         pw.Expanded(
                             child: pw.Padding(
                                 padding: const pw.EdgeInsets.all(5),
@@ -172,7 +163,6 @@ class PdfService {
                                       _buildSmallText("1. Karyawan Menikah : 3 hari"),
                                       _buildSmallText("2. Menikahkan anak : 2 hari"),
                                       _buildSmallText("3. Istri melahirkan/keguguran : 2 hari"),
-                                      _buildSmallText("4. Anggota keluarga meninggal : 1 hari"),
                                     ]
                                 )
                             )
@@ -180,96 +170,217 @@ class PdfService {
                       ]
                   )
               ),
-
               pw.SizedBox(height: 10),
-
-              // --- KOLOM TANDA TANGAN ---
+              // Tanda Tangan
               pw.Table(
                   border: pw.TableBorder.all(),
                   children: [
                     pw.TableRow(children: [
-                      pw.Center(child: pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text(""))), // Kosong kiri
-                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text("Ya   Tidak   Tunda")),
-                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text("Ya   Tidak   Tunda")),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text("Karyawan", textAlign: pw.TextAlign.center)),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text("Div. / Dept. Head", textAlign: pw.TextAlign.center)),
+                      pw.Padding(padding: const pw.EdgeInsets.all(4), child: pw.Text("HR Dept.", textAlign: pw.TextAlign.center)),
                     ]),
                     pw.TableRow(children: [
-                      pw.Container(height: 40), // Ruang Tanda Tangan
                       pw.Container(height: 40),
                       pw.Container(height: 40),
-                    ]),
-                    pw.TableRow(children: [
-                      pw.Center(child: pw.Text("Karyawan", style: const pw.TextStyle(fontSize: 10))),
-                      pw.Center(child: pw.Text("Div. / Dept. Head", style: const pw.TextStyle(fontSize: 10))),
-                      pw.Center(child: pw.Text("HR Dept.", style: const pw.TextStyle(fontSize: 10))),
+                      pw.Container(height: 40),
                     ]),
                   ]
               ),
-
-              pw.SizedBox(height: 5),
-              pw.Text("*) Note: Permohonan cuti diterima HR Dept paling lambat 1 minggu sebelum tanggal pelaksanaan.", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
             ],
           );
         },
       ),
     );
 
-    // Langsung Print / Share / Simpan
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-    );
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  // --- WIDGET HELPER UNTUK PDF ---
+  // --- PDF 2: FORM IZIN & SUBSTITUSI (Sesuai Gambar 4 - SB) ---
+  Future<void> createHourlyPdf(
+      String name,
+      String jabatan,
+      DateTime permitDate,
+      String startTime,
+      String endTime,
+      bool isBackToWork,
+      String reason,
+      ) async {
+    final pdf = pw.Document();
 
-  pw.Widget _buildRowInfo(String label1, String val1, String label2, String val2) {
-    return pw.Row(
-        children: [
-          pw.Expanded(child: pw.Row(children: [pw.Container(width: 80, child: pw.Text(label1)), pw.Text(val1)])),
-          pw.Expanded(child: pw.Row(children: [pw.Container(width: 100, child: pw.Text(label2)), pw.Text(val2)])),
-        ]
-    );
-  }
+    // Hitung Durasi
+    // Format string HH:mm ke DateTime untuk hitung selisih
+    DateTime startT = DateFormat("HH:mm").parse(startTime);
+    DateTime endT = DateFormat("HH:mm").parse(endTime);
+    int diffMinutes = endT.difference(startT).inMinutes;
+    String durationStr = "${(diffMinutes / 60).floor()} Jam ${diffMinutes % 60} Menit";
 
-  pw.Widget _buildSimpleRow(String label, String val) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 2),
-      child: pw.Row(
-          children: [
-            pw.Container(width: 100, child: pw.Text(label, style: const pw.TextStyle(fontSize: 10))),
-            pw.Text(val, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-          ]
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        orientation: pw.PageOrientation.landscape,
+        margin: const pw.EdgeInsets.all(32),
+        build: (pw.Context context) {
+          return pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // KONTEN UTAMA (Kiri)
+                pw.Expanded(
+                    child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          // Header Data Diri
+                          _buildFormLine("Nama", name),
+                          _buildFormLine("Jabatan", jabatan),
+                          _buildFormLine("Tanggal pengajuan ijin", DateFormat('dd MMM yyyy').format(DateTime.now())),
+                          _buildFormLine("Tanggal ijin", DateFormat('dd MMM yyyy').format(permitDate)),
+                          _buildFormLine("Waktu ijin", "$startTime s/d $endTime"),
+                          _buildFormLine("Total waktu ijin", durationStr),
+                          _buildFormLine("Alasan", reason),
+
+                          pw.SizedBox(height: 10),
+                          pw.Text("Kembali lagi kerja", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          pw.SizedBox(height: 5),
+                          pw.Row(
+                              children: [
+                                _buildCheckbox("    ", isBackToWork), // Kotak centang
+                                pw.SizedBox(width: 10),
+                                pw.Text("Tidak kembali/pulang"),
+                                pw.SizedBox(width: 10),
+                                _buildCheckbox("    ", !isBackToWork),
+                              ]
+                          ),
+
+                          pw.SizedBox(height: 20),
+
+                          // TABEL SUBSTITUSI
+                          pw.Text("Rincian penggantian waktu ijin:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                          pw.SizedBox(height: 5),
+                          pw.Table(
+                              border: pw.TableBorder.all(),
+                              children: [
+                                pw.TableRow(
+                                    decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                                    children: [
+                                      _buildTableCell("Tanggal", isHeader: true),
+                                      _buildTableCell("Waktu", isHeader: true),
+                                      _buildTableCell("Hal yang dikerjakan", isHeader: true),
+                                    ]
+                                ),
+                                // Baris Kosong untuk diisi manual
+                                _buildEmptyRow(),
+                                _buildEmptyRow(),
+                                _buildEmptyRow(),
+                                _buildEmptyRow(),
+                              ]
+                          ),
+
+                          pw.Spacer(),
+
+                          // TANDA TANGAN
+                          pw.Table(
+                              border: pw.TableBorder.all(),
+                              children: [
+                                pw.TableRow(children: [
+                                  pw.Container(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text("Karyawan"))),
+                                  pw.Container(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text("Atasan"))),
+                                  pw.Container(padding: const pw.EdgeInsets.all(5), child: pw.Center(child: pw.Text("HRD"))),
+                                ]),
+                                pw.TableRow(children: [
+                                  pw.Container(height: 50),
+                                  pw.Container(height: 50),
+                                  pw.Container(height: 50),
+                                ]),
+                                pw.TableRow(children: [
+                                  pw.Padding(padding: const pw.EdgeInsets.all(2), child: pw.Text("Diterima pada tanggal :", style: const pw.TextStyle(fontSize: 8))),
+                                  pw.Container(),
+                                  pw.Container(),
+                                ]),
+                              ]
+                          ),
+                        ]
+                    )
+                ),
+
+                // HEADER LOGO PERUSAHAAN (Kanan - Rotated/Sidebar style sesuai gambar 4)
+                pw.SizedBox(width: 20),
+                pw.Container(
+                    width: 150,
+                    child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          // LOGO SB
+                          pw.Text("SB", style: pw.TextStyle(fontSize: 40, fontWeight: pw.FontWeight.bold)),
+                          pw.Text("PT. Sumber Baru Ban", style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+                          pw.Text("Jalan MT Haryono 662 Semarang\nTelp. (024) 3515708\nFax. (024) 3519696", style: const pw.TextStyle(fontSize: 8), textAlign: pw.TextAlign.right),
+                          pw.SizedBox(height: 20),
+                          pw.Container(
+                              padding: const pw.EdgeInsets.all(5),
+                              color: PdfColors.black,
+                              child: pw.Text("Form Ijin dan Substitusi Kerja", style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10))
+                          ),
+                          pw.Container(width: 5, height: 400, color: PdfColors.black), // Garis vertikal tebal
+                        ]
+                    )
+                )
+              ]
+          );
+        },
       ),
     );
+
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
   }
 
-  pw.Widget _buildCheckbox(String label, bool isChecked) {
-    return pw.Row(
-        children: [
-          pw.Container(
-            width: 10, height: 10,
-            margin: const pw.EdgeInsets.only(right: 5, bottom: 2),
-            decoration: pw.BoxDecoration(border: pw.Border.all()),
-            child: isChecked ? pw.Center(child: pw.Text("X", style: const pw.TextStyle(fontSize: 8))) : null,
-          ),
-          pw.Text(label, style: const pw.TextStyle(fontSize: 10)),
-        ]
-    );
+
+  // --- HELPERS ---
+  pw.Widget _buildRowInfo(String l1, String v1, String l2, String v2) {
+    return pw.Row(children: [
+      pw.Expanded(child: pw.Row(children: [pw.Container(width: 80, child: pw.Text(l1)), pw.Text(v1)])),
+      pw.Expanded(child: pw.Row(children: [pw.Container(width: 100, child: pw.Text(l2)), pw.Text(v2)])),
+    ]);
   }
 
-  pw.Widget _buildTableItem(String label, String val) {
-    return pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(label, style: const pw.TextStyle(fontSize: 9)),
-          pw.Text(val, style: const pw.TextStyle(fontSize: 9)),
-        ]
-    );
+  pw.Widget _buildSimpleRow(String l, String v) => pw.Padding(padding: const pw.EdgeInsets.only(bottom: 2), child: pw.Row(children: [pw.Container(width: 100, child: pw.Text(l, style: const pw.TextStyle(fontSize: 10))), pw.Text(v, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold))]));
+
+  pw.Widget _buildCheckbox(String label, bool checked) {
+    return pw.Row(children: [
+      pw.Container(width: 12, height: 12, decoration: pw.BoxDecoration(border: pw.Border.all(), color: checked ? PdfColors.black : null)),
+      pw.SizedBox(width: 5),
+      pw.Text(label)
+    ]);
   }
 
-  pw.Widget _buildSmallText(String text) {
+  pw.Widget _buildTableItem(String l, String v) => pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text(l, style: const pw.TextStyle(fontSize: 9)), pw.Text(v, style: const pw.TextStyle(fontSize: 9))]);
+  pw.Widget _buildSmallText(String t) => pw.Text(t, style: const pw.TextStyle(fontSize: 8));
+
+  // Helper untuk Form Ijin
+  pw.Widget _buildFormLine(String label, String value) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 2),
-      child: pw.Text(text, style: const pw.TextStyle(fontSize: 8)),
+        padding: const pw.EdgeInsets.only(bottom: 5),
+        child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Container(width: 100, child: pw.Text(label)),
+              pw.Text(":  "),
+              pw.Expanded(child: pw.Text(value, style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
+            ]
+        )
     );
+  }
+
+  pw.Widget _buildTableCell(String text, {bool isHeader = false}) {
+    return pw.Padding(
+        padding: const pw.EdgeInsets.all(5),
+        child: pw.Center(child: pw.Text(text, style: pw.TextStyle(fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal, fontSize: 10)))
+    );
+  }
+
+  pw.TableRow _buildEmptyRow() {
+    return pw.TableRow(children: [
+      pw.Container(height: 20),
+      pw.Container(height: 20),
+      pw.Container(height: 20),
+    ]);
   }
 }

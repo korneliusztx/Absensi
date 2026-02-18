@@ -30,7 +30,6 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
     _refreshData();
   }
 
-  // Update: Mengembalikan Future agar indikator loading refresh berjalan
   Future<void> _refreshData() async {
     setState(() {
       _profileFuture = _apiService.getProfile(widget.token);
@@ -46,91 +45,90 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _refreshData,
-          color: Colors.blueAccent,
-          child: NestedScrollView(
-            headerSliverBuilder: (context, innerBoxIsScrolled) => [
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildMinimalHeader(),
-                    const SizedBox(height: 20),
-                    _buildStatsSection(),
-                    const SizedBox(height: 25),
+        // PERBAIKAN: RefreshIndicator bagian LUAR dihapus.
+        // Kita hanya mengandalkan RefreshIndicator di dalam TabBarView.
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildMinimalHeader(),
+                  const SizedBox(height: 20),
+                  _buildStatsSection(),
+                  const SizedBox(height: 25),
 
-                    // TOMBOL MENU BESAR
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: _bigActionButton(
-                                "Kirim Kunjungan\n(Foto & Lokasi)",
-                                Icons.camera_alt,
-                                Colors.blueAccent,
-                                // PENTING: Set isMobile: true agar tidak perlu validasi jarak
-                                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendanceScreen(token: widget.token, isMobile: true)))
-                            ),
+                  // TOMBOL MENU BESAR
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _bigActionButton(
+                              "Kirim Kunjungan\n(Foto & Lokasi)",
+                              Icons.camera_alt,
+                              Colors.blueAccent,
+                                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => AttendanceScreen(token: widget.token, isMobile: true)))
                           ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: _bigActionButton(
-                                "Pengajuan\nCuti",
-                                Icons.calendar_month,
-                                Colors.orange,
-                                    () => Navigator.push(context, MaterialPageRoute(builder: (_) => LeaveScreen(token: widget.token)))
-                            ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: _bigActionButton(
+                              "Pengajuan\nCuti",
+                              Icons.calendar_month,
+                              Colors.orange,
+                                  () => Navigator.push(context, MaterialPageRoute(builder: (_) => LeaveScreen(token: widget.token)))
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 25),
+                  ),
+                  const SizedBox(height: 25),
 
-                    // TAB BAR
-                    Container(
-                      height: 40,
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
-                      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(20)),
-                      child: TabBar(
-                        controller: _tabController,
-                        indicator: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
-                        indicatorSize: TabBarIndicatorSize.tab,
-                        labelColor: Colors.white,
-                        unselectedLabelColor: Colors.grey[600],
-                        dividerColor: Colors.transparent,
-                        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                        tabs: const [Tab(text: "Riwayat Absen"), Tab(text: "Riwayat Cuti")],
-                      ),
+                  // TAB BAR
+                  Container(
+                    height: 40,
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(20)),
+                    child: TabBar(
+                      controller: _tabController,
+                      indicator: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      labelColor: Colors.white,
+                      unselectedLabelColor: Colors.grey[600],
+                      dividerColor: Colors.transparent,
+                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      tabs: const [Tab(text: "Riwayat Absen"), Tab(text: "Riwayat Cuti")],
                     ),
-                    const SizedBox(height: 15),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 15),
+                ],
+              ),
+            ),
+          ],
+          // ISI KONTEN (LIST)
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              // RefreshIndicator DI DALAM sini yang akan bekerja
+              RefreshIndicator(
+                onRefresh: _refreshData,
+                color: Colors.blueAccent,
+                child: _buildModernAttendanceList(),
+              ),
+              RefreshIndicator(
+                onRefresh: _refreshData,
+                color: Colors.orange,
+                child: _buildModernLeaveList(),
               ),
             ],
-            // ISI KONTEN (LIST)
-            body: TabBarView(
-              controller: _tabController,
-              children: [
-                // Bungkus masing-masing list dengan RefreshIndicator lagi agar UX lebih smooth
-                RefreshIndicator(
-                  onRefresh: _refreshData,
-                  child: _buildModernAttendanceList(),
-                ),
-                RefreshIndicator(
-                  onRefresh: _refreshData,
-                  child: _buildModernLeaveList(),
-                ),
-              ],
-            ),
           ),
         ),
       ),
     );
   }
 
-  // --- WIDGET HELPER (TIDAK PERLU DIUBAH, CUMA COPY PASTE DARI KODE ANDA) ---
+  // --- WIDGET HELPER ---
 
   Widget _bigActionButton(String title, IconData icon, Color color, VoidCallback onTap) {
     return GestureDetector(
@@ -178,7 +176,7 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Halo, ${widget.name.split(' ')[0]}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
+              Text("Halo, ${widget.name}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
               const Text("Mode Mobile / Lapangan", style: TextStyle(fontSize: 12, color: Colors.grey)),
             ],
           ),
@@ -233,16 +231,14 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
     );
   }
 
-  // UPDATE: Tambahkan Physics agar bisa di-scroll & refresh meski data kosong/sedikit
   Widget _buildModernAttendanceList() {
     return FutureBuilder<List<dynamic>>(
       future: _attendanceFuture,
       builder: (context, snapshot) {
-        // Tetap return ListView agar bisa di-refresh saat kosong
         if (!snapshot.hasData || snapshot.data!.isEmpty) return _emptyIllustration();
 
         return ListView.builder(
-          physics: const AlwaysScrollableScrollPhysics(), // WAJIB
+          physics: const AlwaysScrollableScrollPhysics(), // Wajib agar bisa ditarik
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           itemCount: snapshot.data!.length,
           itemBuilder: (context, index) {
@@ -290,7 +286,7 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
         if (!snapshot.hasData || snapshot.data!.isEmpty) return _emptyIllustration();
 
         return ListView.builder(
-          physics: const AlwaysScrollableScrollPhysics(), // WAJIB
+          physics: const AlwaysScrollableScrollPhysics(), // Wajib agar bisa ditarik
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           itemCount: snapshot.data!.length,
           itemBuilder: (context, index) {
@@ -307,10 +303,9 @@ class _MobileHomeScreenState extends State<MobileHomeScreen> with SingleTickerPr
     );
   }
 
-  // Widget kosong yang bisa di-refresh
   Widget _emptyIllustration() {
     return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(), // Agar tetap bisa ditarik refresh walau kosong
       children: [
         SizedBox(height: MediaQuery.of(context).size.height * 0.1),
         Center(

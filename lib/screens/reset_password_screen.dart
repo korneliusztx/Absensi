@@ -69,6 +69,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       setState(() => _isLoading = false); // Stop loading setelah data profile dapat
 
       bool isMobile = false;
+      String userName = profileData?['name'] ?? "User";
 
       // Cek apakah data valid dan is_mobile true
       if (profileData != null &&
@@ -83,12 +84,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       if (isMobile) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => MobileHomeScreen(token: widget.token, name: "User")),
+          MaterialPageRoute(builder: (context) => MobileHomeScreen(token: widget.token, name: userName)),
         );
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomeScreen(token: widget.token, name: "User")),
+          MaterialPageRoute(builder: (context) => HomeScreen(token: widget.token, name: userName)),
         );
       }
 
