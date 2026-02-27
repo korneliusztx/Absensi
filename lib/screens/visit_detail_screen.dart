@@ -99,8 +99,6 @@ class _VisitDetailScreenState extends State<VisitDetailScreen> {
     if (photo == null) return;
 
     // 2. Ambil Catatan (Opsional)
-    String? note = await _showNoteDialog("Catatan Clock In", "Contoh: Sampai di lokasi");
-    if (note == null) return; // Batal jika user cancel dialog
 
     setState(() => _isLoadingCheckIn = true);
 
@@ -113,8 +111,7 @@ class _VisitDetailScreenState extends State<VisitDetailScreen> {
             widget.visitData['id'].toString(),
             position.latitude.toString(),
             position.longitude.toString(),
-            photo,
-            note
+            photo
         );
 
         if (res['success'] == true) {

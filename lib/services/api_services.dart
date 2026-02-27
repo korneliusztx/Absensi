@@ -367,7 +367,7 @@ class ApiService {
 
   // 1. CLOCK IN KUNJUNGAN
   Future<Map<String, dynamic>> clockInVisit(
-      String token, String visitId, String lat, String lng, File photo, String notes) async {
+      String token, String visitId, String lat, String lng, File photo) async {
     try {
       var uri = Uri.parse("$baseUrl/visit-attendance"); // Sesuaikan endpoint
       var request = http.MultipartRequest('POST', uri);
@@ -378,7 +378,6 @@ class ApiService {
       request.fields['schedule_id'] = visitId;
       request.fields['latitude'] = lat;
       request.fields['longitude'] = lng;
-      request.fields['visit_notes'] = notes; // Catatan Clock In (misal: "Sampai di lokasi")
 
       // Upload Foto
       var pic = await http.MultipartFile.fromPath("photo", photo.path);
